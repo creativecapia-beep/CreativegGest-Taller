@@ -112,13 +112,12 @@ async function start(){const tid=await q(sb.rpc('mi_taller'));if(!tid){root.inne
 if(await q(sb.rpc('soy_admin'))){await load();shell()}else mecView()}
 async function mecView(){
   const my=await q(sb.rpc('mi_empleado'));
-  const[o,r,mc,or,pg,mv]=await Promise.all([
+  const[o,r,mc,or,pg]=await Promise.all([
     q(sb.from('portal_mecanico').select('*')),
     q(sb.from('portal_repuestos').select('*')),
     q(sb.rpc('mi_caja')),
     q(sb.from('ordenes_total').select('*').eq('mecanico_id',my)),
-    q(sb.from('pagos_orden').select('*')),
-    q(sb.rpc('mecanico_movimientos'))
+    q(sb.from('pagos_orden').select('*'))
   ]);
   C.or=or||[]; C.pg=pg||[];
   const cbox=Array.isArray(mc)?(mc[0]||{}):mc||{};
@@ -127,17 +126,14 @@ async function mecView(){
   const saldoM=x=>x.cobrada?0:Math.max(0,+x.total-pagoM(x.id));
   root.innerHTML=`<main style="max-width:760px;margin:auto"><div class="tb"><h2>Portal del mecánico</h2><button onclick="salir()">Salir</button></div>
 ${cbox.puede_cobrar?`<div class="c"><b>Mi caja</b><br>Caja asignada: <b>${esc(cbox.caja_nombre||'—')}</b><br>Permiso: <span class="bd ok">Puede cobrar</span>
-${cbox.sesion_id?`<br>Estado: <span class="bd ok">Abierta</span> · Desde ${new Date(cbox.sesion_abierta).toLocaleString('es-AR')}<div class="r"><button class="s" onclick="mecMovimiento()">+ Movimiento</button><button class="s" onclick="mecCerrarCaja('${cbox.sesion_id}')">Cerrar caja</button></div>`:`<br>Estado: <span class="bd no">Cerrada</span><div class="r"><button class="p" onclick="mecAbrirCaja()">Abrir caja</button></div>`}</div>
-${cbox.sesion_id?`<div class="c"><b>Movimientos de mi caja</b>${(mv||[]).slice(0,12).map(x=>`<div class="mu" style="padding:4px 0">${new Date(x.created_at).toLocaleString('es-AR')} · ${L(x.tipo)} · ${L(x.medio)} · ${M(x.monto)}${x.concepto?' · '+esc(x.concepto):''}</div>`).join('')||'<span class="mu">Sin movimientos.</span>'}</div>`:''}`:
+${cbox.sesion_id?`<br>Estado: <span class="bd ok">Abierta</span> · Desde ${new Date(cbox.sesion_abierta).toLocaleString('es-AR')}<br><span class="mu">La caja es administrada por el jefe/administrador. Vos solo podés registrar cobros.</span>`:`<br>Estado: <span class="bd no">Cerrada</span><br><span class="mu">La caja debe ser abierta por el jefe/administrador antes de registrar cobros.</span>`}</div>
+<div class="c"><b>Mis cobros</b><br><b>${M((pagos||[]).filter(p=>p.empleado_id==my).reduce((a,p)=>a+ +p.monto,0))}</b> registrados en pagos de órdenes${(pagos||[]).filter(p=>p.empleado_id==my).length?`<div class="mu" style="margin-top:6px">${(pagos||[]).filter(p=>p.empleado_id==my).slice(-10).reverse().map(p=>`${new Date(p.created_at).toLocaleString('es-AR')} · Orden · ${M(p.monto)} · ${L(p.medio)}${p.vuelto>0?' · Vuelto '+M(p.vuelto):''}`).join('<br>')}</div>`:'<div class="mu">Todavía no registraste cobros.</div>'}</div>`:
 `<div class="c"><b>Caja</b><br><span class="bd no">Solo trabajar en órdenes</span><br><span class="mu">El administrador no te habilitó para cobrar o no te asignó una caja.</span></div>`}
 ${o.map(x=>{const saldo=saldoM(x);return`<div class="c"><b>Orden #${x.numero} · ${esc(x.marca_modelo)} ${esc(x.patente)}</b><br>${x.anio||''} · ${esc(x.motor)} · ${esc(x.datos)}<br><b>Trabajo:</b> ${esc(x.descripcion)}<br><b>Problemas:</b> ${esc(x.informe_problemas)}<br><b>Posible solución:</b> ${esc(x.posible_solucion)}<br>${r.filter(i=>i.orden_id==x.id).map(i=>`<span class="mu">· ${esc(i.descripcion)} x${i.cantidad}</span><br>`).join('')}<br>
 <select onchange="mest('${x.id}',this.value)">${['orden_abierta','en_reparacion','terminada'].map(e=>`<option value="${e}" ${e==x.estado?'selected':''}>${L(e)}</option>`).join('')}</select>
 ${x.estado!='presupuesto'&&cbox.puede_cobrar&&cbox.sesion_id&&!x.cobrada?`<button class="s p" onclick="mecCobrar('${x.id}')">Cobrar · saldo ${M(saldo)}</button>`:''}
 ${x.cobrada?'<span class="bd ok">Cobrada</span>':saldo<+x.total?`<span class="bd">Pagado ${M(pagoM(x.id))} · saldo ${M(saldo)}</span>`:''}</div>`}).join('')||'<div class="c mu">No tenés órdenes asignadas.</div>'}</main>`;
 }
-const mecMovimiento=()=>form('Movimiento de mi caja',[['t','Tipo','sel',[['ingreso','Ingreso'],['egreso','Egreso']]],['m','Medio','sel',MED],['n','Monto','number'],['c','Concepto'],['d','Detalle']],{},async r=>{await q(sb.rpc('mecanico_registrar_movimiento',{p_tipo:r.t,p_medio:r.m,p_monto:+r.n||0,p_concepto:r.c,p_detalle:r.d}));mecView()});
-const mecAbrirCaja=()=>form('Abrir caja asignada',[['n','Efectivo inicial','number']],{n:0},async r=>{await q(sb.rpc('mecanico_abrir_caja',{p_efectivo_inicial:+r.n||0}));mecView()});
-const mecCerrarCaja=async id=>{const c=prompt('Efectivo contado al cerrar:', '0');if(c===null)return;await q(sb.rpc('mecanico_cerrar_caja',{p_sesion:id,p_contado:+c||0}));mecView()};
 const mecCobrar=id=>{const o=C.or.find(x=>x.id==id);const saldo=saldoOrden(id);form('Cobrar orden #'+o.numero+' · Saldo '+M(saldo),[['m','Medio de pago','sel',MED],['p','Importe entregado','number'],['d','Nº de cheque / cuenta / nota']],{p:saldo},async r=>{const z=await q(sb.rpc('registrar_pago_orden',{p_orden:id,p_medio:r.m,p_detalle:r.d,p_pagado:+r.p||0}));const x=Array.isArray(z)?z[0]:z;if(x?.vuelto>0)alert('Cobro registrado. Vuelto: '+M(x.vuelto));mecView()})};
 const mest=async(id,e)=>{try{await q(sb.rpc('mecanico_cambiar_estado',{p_orden:id,p_estado:e==='orden_abierta'?'en_reparacion':e}));mecView()}catch(_){}};
 async function pub(slug){const I=await q(sb.rpc('turnero_info',{p_slug:slug}));if(!I){root.innerHTML='<div class="au">Taller no encontrado.</div>';return}
