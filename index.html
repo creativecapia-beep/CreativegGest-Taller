@@ -124,11 +124,30 @@ async function mecView(){
   const pagos=C.pg||[];
   const pagoM=id=>pagos.filter(p=>p.orden_id==id).reduce((a,p)=>a+ +p.monto,0);
   const saldoM=x=>x.cobrada?0:Math.max(0,+x.total-pagoM(x.id));
-  root.innerHTML=`<main style="max-width:760px;margin:auto"><div class="tb"><h2>Portal del mecánico</h2><button onclick="salir()">Salir</button></div>
-${cbox.puede_cobrar?`<div class="c"><b>Mi caja</b><br>Caja asignada: <b>${esc(cbox.caja_nombre||'—')}</b><br>Permiso: <span class="bd ok">Puede cobrar</span>
-${cbox.sesion_id?`<br>Estado: <span class="bd ok">Abierta</span> · Desde ${new Date(cbox.sesion_abierta).toLocaleString('es-AR')}<br><span class="mu">La caja es administrada por el jefe/administrador. Vos solo podés registrar cobros.</span>`:`<br>Estado: <span class="bd no">Cerrada</span><br><span class="mu">La caja debe ser abierta por el jefe/administrador antes de registrar cobros.</span>`}</div>
-<div class="c"><b>Mis cobros</b><br><b>${M((pagos||[]).filter(p=>p.empleado_id==my).reduce((a,p)=>a+ +p.monto,0))}</b> registrados en pagos de órdenes${(pagos||[]).filter(p=>p.empleado_id==my).length?`<div class="mu" style="margin-top:6px">${(pagos||[]).filter(p=>p.empleado_id==my).slice(-10).reverse().map(p=>`${new Date(p.created_at).toLocaleString('es-AR')} · Orden · ${M(p.monto)} · ${L(p.medio)}${p.vuelto>0?' · Vuelto '+M(p.vuelto):''}`).join('<br>')}</div>`:'<div class="mu">Todavía no registraste cobros.</div>'}</div>`:
-`<div class="c"><b>Caja</b><br><span class="bd no">Solo trabajar en órdenes</span><br><span class="mu">El administrador no te habilitó para cobrar o no te asignó una caja.</span></div>`}
+  const desc=(a,b)=>a.created_at<b.created_at?1:-1;
+  const sumM=a=>a.reduce((s,p)=>s+ +p.monto,0);
+  const ses=cbox.sesion_id?pagos.filter(p=>p.sesion_id==cbox.sesion_id).sort(desc):[];
+  const porMedio=MED.map(m=>[m[1],sumM(ses.filter(p=>p.medio==m[0]))]).filter(x=>x[1]>0);
+  const nOrd=id=>(C.or.find(x=>x.id==id)||{}).numero;
+  const lst=cbox.sesion_id?ses:pagos.filter(p=>p.empleado_id==my).sort(desc).slice(0,10);
+  const cajaCard=!cbox.puede_cobrar
+    ?`<div class="c"><b>Caja</b><br><span class="bd no">Solo trabajar en órdenes</span><br><span class="mu">El administrador no te habilitó para cobrar.</span></div>`
+    :!cbox.caja_id
+      ?`<div class="c"><b>Caja</b><br><span class="bd no">Sin caja asignada</span><br><span class="mu">Pedile al administrador que te asigne una caja.</span></div>`
+      :`<div class="c"><b>Mi caja: ${esc(cbox.caja_nombre)}</b> ${cbox.sesion_id?'<span class="bd ok">Abierta</span>':'<span class="bd no">Cerrada</span>'}
+${cbox.sesion_id
+  ?`<br><span class="mu">Abierta desde ${new Date(cbox.sesion_abierta).toLocaleString('es-AR')}</span>
+<div class="k" style="margin:10px 0 0"><div class="c">Efectivo inicial<b>${M(cbox.efectivo_inicial)}</b></div><div class="c">Cobrado en la sesión<b>${M(sumM(ses))}</b></div><div class="c">Efectivo cobrado<b>${M(sumM(ses.filter(p=>p.medio=='efectivo')))}</b></div></div>
+${porMedio.length?`<div style="margin-top:8px">${porMedio.map(m=>`<span class="bd">${m[0]}: ${M(m[1])}</span> `).join('')}</div>`:''}
+<div class="mu" style="margin-top:8px">La caja la abre y la cierra el administrador. Vos solo registrás cobros.</div>`
+  :`<br><span class="mu">La caja debe ser abierta por el administrador antes de registrar cobros.</span>`}</div>`;
+  const cobrosCard=cbox.puede_cobrar&&cbox.caja_id
+    ?`<b>${cbox.sesion_id?'Cobros de esta sesión':'Mis últimos cobros'}</b>`+tbl(['Fecha','Orden','Medio','Monto','Vuelto'],lst.map(p=>[new Date(p.created_at).toLocaleString('es-AR'),'#'+(nOrd(p.orden_id)||'—'),L(p.medio)+(p.detalle?'<br>'+esc(p.detalle):''),M(p.monto),p.vuelto>0?M(p.vuelto):'—']))+'<div style="height:12px"></div>'
+    :'';
+  root.innerHTML=`<main style="max-width:760px;margin:auto"><div class="tb"><h2>Portal del mecánico</h2><span><button onclick="mecView()">Actualizar</button> <button onclick="salir()">Salir</button></span></div>
+${cajaCard}
+${cobrosCard}
+<b>Mis órdenes</b><div style="height:8px"></div>
 ${o.map(x=>{const saldo=saldoM(x);return`<div class="c"><b>Orden #${x.numero} · ${esc(x.marca_modelo)} ${esc(x.patente)}</b><br>${x.anio||''} · ${esc(x.motor)} · ${esc(x.datos)}<br><b>Trabajo:</b> ${esc(x.descripcion)}<br><b>Problemas:</b> ${esc(x.informe_problemas)}<br><b>Posible solución:</b> ${esc(x.posible_solucion)}<br>${r.filter(i=>i.orden_id==x.id).map(i=>`<span class="mu">· ${esc(i.descripcion)} x${i.cantidad}</span><br>`).join('')}<br>
 <select onchange="mest('${x.id}',this.value)">${['orden_abierta','en_reparacion','terminada'].map(e=>`<option value="${e}" ${e==x.estado?'selected':''}>${L(e)}</option>`).join('')}</select>
 ${x.estado!='presupuesto'&&cbox.puede_cobrar&&cbox.sesion_id&&!x.cobrada?`<button class="s p" onclick="mecCobrar('${x.id}')">Cobrar · saldo ${M(saldo)}</button>`:''}
