@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><title>Capiagest Taller</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1769e8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Capiagest">
 <style>
 :root{--bg:#f5f9ff;--cd:#fff;--tx:#12345b;--mu:#6380a3;--bd:#d9e8fb;--ac:#1769e8;--ac2:#0d5bd7;--soft:#eef6ff}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#f4f9ff 0,#fff 45%);color:var(--tx);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
@@ -229,4 +236,10 @@ document.querySelectorAll('.sl button:not(.x)').forEach(b=>b.onclick=()=>{h=b.da
 $('#pfm').onsubmit=async e=>{e.preventDefault();if(!h)return alert('Elegí un horario.');if(e.target.dataset.busy)return;e.target.dataset.busy='1';const x=e.target,submit=x.querySelector('button[type=submit]'),original=submit?.textContent;if(submit){submit.disabled=true;submit.textContent='Reservando…'}try{await q(sb.rpc('turnero_reservar',{p_slug:slug,p_fecha:f,p_hora:h,p_empleado:em||null,p_nombre:x.n.value,p_telefono:x.t.value,p_vehiculo:x.v.value,p_servicio:x.s.value}));const tx=`Turno confirmado en ${I.nombre}\nDía: ${f} a las ${h}\nNombre: ${x.n.value}\nServicio: ${x.s.value}`;root.innerHTML=`<div class="au"><div class="c"><h2>✔ Turno confirmado</h2><p>${f} · ${h}<br>${esc(I.nombre)}<br>${esc(I.direccion)}</p><button class="p" id="w">Enviar comprobante por WhatsApp</button></div></div>`;$('#w').onclick=()=>wa(I.whatsapp||x.t.value,tx)}catch(_){h=null;await fetchOc()}finally{if(document.body.contains(x)){x.dataset.busy='';if(submit){submit.disabled=false;submit.textContent=original}}}}}
 fetchOc()}
 (async()=>{const hm=location.hash.match(/^#t=(\w+)/);if(hm)return pub(hm[1]);const{data:{session}}=await sb.auth.getSession();session?start():auth()})();
-</script></body></html>
+</script><script>
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+// Botón "Instalar app" cuando el navegador lo permite (Chrome/Edge/Android)
+let _dip;addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dip=e;if(document.getElementById('instalar'))return;const b=document.createElement('button');b.id='instalar';b.className='p';b.textContent='📲 Instalar app';b.style.cssText='position:fixed;right:14px;bottom:14px;z-index:50;padding:10px 16px;border-radius:999px';b.onclick=async()=>{b.remove();_dip.prompt();await _dip.userChoice};document.body.append(b)});
+addEventListener('appinstalled',()=>{const b=document.getElementById('instalar');if(b)b.remove()});
+</script>
+</body></html>
