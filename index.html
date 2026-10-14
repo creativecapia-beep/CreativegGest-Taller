@@ -33,6 +33,29 @@ table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px;bord
 @media(max-width:760px){#app{display:block;min-height:100vh}#app:before{display:none}nav{position:static;height:auto;display:block;padding-bottom:8px;border-right:0;border-bottom:1px solid var(--bd)}nav .b{height:60px;margin-bottom:6px}nav a{display:inline-block;margin:2px;width:auto}main{padding:14px}.k{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .sec{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--mu);margin:10px 0 3px;font-weight:700}.gw{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}.ord a,#cvl a{color:var(--ac);text-decoration:none}.ord .tb{margin-bottom:4px}
 .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.quick button{min-height:54px;text-align:left;font-weight:700}.metric-note{font-size:12px;color:var(--mu)}.low{border-left:4px solid #dc2626}.audit-row td{font-size:12px}@media print{nav,#app:before,.no-print{display:none!important}main{padding:0!important}.c{box-shadow:none!important;border:0!important}body{background:#fff!important}}
+
+/* ===== Modo oscuro (negro y azul) ===== */
+#tema{position:fixed;top:14px;right:16px;z-index:20;padding:6px 13px;border-radius:999px;font-weight:700}
+html[data-theme=dark]{--bg:#05070d;--cd:#0b1220;--tx:#dbe7ff;--mu:#8aa4cf;--bd:#1c2b4a;--ac:#3b8bff;--ac2:#2f7bef;--soft:#0f1b33;color-scheme:dark}
+[data-theme=dark] body{background:linear-gradient(180deg,#04060b 0,#07101f 100%);color:var(--tx)}
+[data-theme=dark] input,[data-theme=dark] select,[data-theme=dark] textarea{background:#08101e;color:var(--tx);border-color:var(--bd)}
+[data-theme=dark] input:focus,[data-theme=dark] select:focus,[data-theme=dark] textarea:focus{border-color:#3b8bff;box-shadow:0 0 0 3px #3b8bff33}
+[data-theme=dark] button{background:#0d172b;color:var(--tx);border-color:var(--bd);box-shadow:none}
+[data-theme=dark] button:hover{border-color:#3b8bff}
+[data-theme=dark] button.p,[data-theme=dark] .tabs button.on,[data-theme=dark] .sl button.on,[data-theme=dark] nav a.on{background:linear-gradient(135deg,#1d5fe0,#3b8bff);border-color:#3b8bff;color:#fff;box-shadow:0 5px 14px #3b8bff33}
+[data-theme=dark] nav{background:#070c17;border-color:var(--bd);box-shadow:none}
+[data-theme=dark] nav .b{background:linear-gradient(180deg,#0a1426,#070c17);color:#8fbcff}
+[data-theme=dark] nav img{background:#0b1220}
+[data-theme=dark] nav a{color:#8fb6f0}
+[data-theme=dark] nav a:not(.on):hover{background:var(--soft);color:#fff}
+[data-theme=dark] #app:before{background:linear-gradient(135deg,#0a2250,#0e3f93);box-shadow:0 3px 14px #0008}
+[data-theme=dark] h2,[data-theme=dark] .au h1,[data-theme=dark] .k b{color:#7fb2ff}
+[data-theme=dark] .c,[data-theme=dark] .md{background:var(--cd);border-color:var(--bd);box-shadow:0 3px 14px #0006}
+[data-theme=dark] th{background:#0d172b}
+[data-theme=dark] .bd{background:var(--soft);color:#8fbcff}
+[data-theme=dark] .ok{background:#16a34a;color:#fff}
+[data-theme=dark] .no{background:#dc2626;color:#fff}
+[data-theme=dark] .mo{background:#000a}
 </style></head><body><div id="root">Cargando…</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -234,7 +257,7 @@ const mVender=()=>{if(!mcart.length)return alert('Agregá al menos un artículo.
 const mecCobrar=id=>{const o=C.or.find(x=>x.id==id);const saldo=saldoOrden(id);form('Cobrar orden #'+o.numero+' · Saldo '+M(saldo),[['m','Medio de pago','sel',MED],['p','Importe entregado','number'],['d','Nº de cheque / cuenta / nota']],{p:saldo},async r=>{const z=await q(sb.rpc('registrar_pago_orden',{p_orden:id,p_medio:r.m,p_detalle:r.d,p_pagado:+r.p||0}));const x=Array.isArray(z)?z[0]:z;if(x?.vuelto>0)alert('Cobro registrado. Vuelto: '+M(x.vuelto));mecView()})};
 const mest=async(id,e)=>{try{await q(sb.rpc('mecanico_cambiar_estado',{p_orden:id,p_estado:e==='orden_abierta'?'en_reparacion':e}));mecView()}catch(_){}};
 async function pub(slug){const I=await q(sb.rpc('turnero_info',{p_slug:slug}));if(!I){root.innerHTML='<div class="au">Taller no encontrado.</div>';return}
-document.documentElement.style.setProperty('--ac',I.color||'#e8590c');document.title=I.nombre+' · Turnos';let f=today(),h=null,em='',oc=[];const sl=slotsOf(I.apertura,I.cierre,I.duracion),ms=I.mecanicos;
+document.documentElement.style.setProperty('--ac','#1769e8');document.title=I.nombre+' · Turnos';let f=today(),h=null,em='',oc=[];const sl=slotsOf(I.apertura,I.cierre,I.duracion),ms=I.mecanicos;
 const free=x=>{const t=oc.filter(o=>o.hora.slice(0,5)==x);return !ms.length?!t.length:em?!t.some(o=>o.empleado_id==em):ms.some(m=>!t.some(o=>o.empleado_id==m.id))};
 const fetchOc=async()=>{oc=await q(sb.rpc('turnero_ocupados',{p_slug:slug,p_fecha:f}));draw()};
 function draw(){root.innerHTML=`<div class="au"><div style="display:flex;gap:10px;align-items:center">${I.logo_url?`<img src="${I.logo_url}" width="48">`:'🔧'}<h2 style="margin:0">${esc(I.nombre)}</h2></div><p class="mu">${esc(I.descripcion)} ${esc(I.direccion)}</p><div class="c"><b>Reservá tu turno</b><label>Día<input type="date" min="${today()}" value="${f}" id="pf"></label>${ms.length>1?`<label>Profesional<select id="pm"><option value="">Cualquiera</option>${ms.map(m=>`<option value="${m.id}" ${m.id==em?'selected':''}>${esc(m.nombre)}</option>`).join('')}</select></label>`:''}<div class="sl">${sl.map(x=>`<button class="${!free(x)?'x':x==h?'on':''}" ${!free(x)?'disabled':''} data-h="${x}">${x}</button>`).join('')}</div><form id="pfm"><label>Nombre<input name="n" required></label><label>Teléfono<input name="t" type="tel" required></label><label>Vehículo (marca, modelo, patente)<input name="v"></label><label>Servicio que necesitás<textarea name="s" rows="2"></textarea></label><button class="p" style="width:100%">Confirmar turno</button></form></div></div>`;
@@ -248,5 +271,12 @@ if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWor
 // Botón "Instalar app" cuando el navegador lo permite (Chrome/Edge/Android)
 let _dip;addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dip=e;if(document.getElementById('instalar'))return;const b=document.createElement('button');b.id='instalar';b.className='p';b.textContent='📲 Instalar app';b.style.cssText='position:fixed;right:14px;bottom:14px;z-index:50;padding:10px 16px;border-radius:999px';b.onclick=async()=>{b.remove();_dip.prompt();await _dip.userChoice};document.body.append(b)});
 addEventListener('appinstalled',()=>{const b=document.getElementById('instalar');if(b)b.remove()});
+</script>
+<script>
+(function(){const g=()=>{try{return localStorage.getItem('capia_tema')||'claro'}catch(e){return'claro'}};
+const ap=t=>{document.documentElement.dataset.theme=t=='oscuro'?'dark':'light';const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t=='oscuro'?'#0a2250':'#1769e8';b.textContent=t=='oscuro'?'☀️ Modo claro':'🌙 Modo oscuro'};
+const b=document.createElement('button');b.id='tema';b.className='no-print';
+b.onclick=()=>{const t=g()=='oscuro'?'claro':'oscuro';try{localStorage.setItem('capia_tema',t)}catch(e){}ap(t)};
+document.body.append(b);ap(g())})();
 </script>
 </body></html>
